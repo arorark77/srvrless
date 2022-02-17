@@ -1,0 +1,92 @@
+---
+service: peersls
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+frameworkVersion: '2'
+provider:
+  name: aws
+  runtime: nodejs12.x
+  lambdaHashingVersion: 20201221
+
+# you can overwrite defaults here
+  # stage: ${file(./${opt:stage, self:provider.stage, 'dev'}.yml):STAGE}
+  # stage: dev
+  stage: ${opt:stage, 'dev'}
+  # region: us-east-1
+  # profile: pythonAutomation
+  # role: arn:aws:iam::994897814213:role/service-role/ddb
+  region: ${file(./${opt:stage, self:provider.stage, 'dev'}.yml):REGION}
+  profile: ${file(./${opt:stage, self:provider.stage, 'dev'}.yml):PROFILE}
+  role: ${file(./${opt:stage, self:provider.stage, 'dev'}.yml):ROLE}
+  environment:
+    tableName: ${file(./${opt:stage, self:provider.stage, 'dev'}.yml):TABLE_NAME}
+    # tableName: peering-sls2
+  endpointType: regional
+  apiGateway:
+    shouldStartNameWithService: true
+    apiKeySourceType: HEADER
+    apiKeys:
+      # - peersls-key
+      - ${file(./${opt:stage, self:provider.stage, 'dev'}.yml):API_KEY}
+    # usagePlan:
+    #   quota:
+    #     limit: 500
+    #     offset: 2
+    #     period: MONTH
+    #   throttle:
+    #     burstLimit: 10
+    #     rateLimit: 10     
+
+# you can add statements to the Lambda function's IAM Role here
+  # iamRoleStatements:
+  #   - Effect: "Allow"
+  #     Action:
+  #       - "dynamodb:*"
+  #     Resource: { "Fn::Join" : ["", ["arn:aws:dynamodb:us-east-1:994897814213:table/", { "Ref" : "peeringTable" } ] ]  }
+
+functions:
+  peersls:
+    handler: handler.peersls
+#    The following are a few example events you can configure
+#    NOTE: Please make sure to change your handler code to work with those events
+#    Check the event documentation for details
+    events:
+      - http:
+          path: /peersls
+          method: GET
+          private: true
+      - http:
+          path: /peersls
+          method: POST
+          private: true
+
+  #  Define function environment variables here
+    # environment:
+    #   tableName: peering
+
+# you can add CloudFormation resource templates here
+resources:
+  Resources:
+    peeringTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        # TableName: peering-sls2
+        TableName: ${file(./${opt:stage, self:provider.stage, 'dev'}.yml):TABLE_NAME}
+        AttributeDefinitions:
+          - AttributeName: vlan
+            AttributeType: N
+          - AttributeName: location
+            AttributeType: S
+        KeySchema:
+          - AttributeName: vlan
+            KeyType: HASH
+          - AttributeName: location
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1       
+  Outputs:
+    peerTableArn:
+      Description: "Peering Table Arn"
+      Value: 
+        'Fn::GetAtt': [peeringTable, Arn]

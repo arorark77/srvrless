@@ -1,0 +1,7 @@
+---
+STAGE: prod
+REGION: us-east-1
+PROFILE: pythonAutomation
+ROLE: arn:aws:iam::994897814213:role/service-role/ddb
+TABLE_NAME: peering-sls-prod
+API_KEY: peerslsprod-key
